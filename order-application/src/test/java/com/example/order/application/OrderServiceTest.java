@@ -3,10 +3,10 @@ package com.example.order.application;
 import com.example.order.application.port.ClockPort;
 import com.example.order.application.port.NotificationPort;
 import com.example.order.application.port.OrderRepository;
+import com.example.order.domain.Money;
 import com.example.order.domain.Order;
 import com.example.order.domain.OrderId;
 import com.example.order.domain.OrderLine;
-import com.example.order.domain.Money;
 import com.example.order.domain.OrderStatus;
 import org.junit.jupiter.api.Test;
 
@@ -53,6 +53,43 @@ class OrderServiceTest {
 
         assertEquals(
                 OrderStatus.CONFIRMED,
+                order.status()
+        );
+    }
+
+    @Test
+    void shouldRecordPayment() {
+
+        OrderRepository repository = new FakeOrderRepository();
+
+        NotificationPort notification = event -> {
+        };
+
+        ClockPort clock = () -> now;
+
+        OrderService service =
+                new OrderService(repository, notification, clock);
+
+        Order order = Order.create(OrderId.newId());
+
+        order.addLine(
+                new OrderLine(
+                        "BISCUIT001",
+                        2,
+                        new Money(
+                                new BigDecimal("20.00"),
+                                "INR"
+                        )
+                )
+        );
+
+        repository.save(order);
+
+        service.confirm(order.id());
+        service.recordPayment(order.id());
+
+        assertEquals(
+                OrderStatus.PAID,
                 order.status()
         );
     }
